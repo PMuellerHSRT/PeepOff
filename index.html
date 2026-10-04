@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>PeepOff — Lil Peep song tournament</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo">PEEP<span>OFF</span></h1>
+    <div class="actions">
+      <div class="volume">
+        <button id="muteBtn" class="btn ghost icon" type="button" title="Mute (M)" aria-label="Mute" aria-pressed="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+            <path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7" />
+            <path class="wave" d="M18.5 5.5a9 9 0 0 1 0 13" />
+            <line class="cross" x1="15.5" y1="8.5" x2="21.5" y2="15.5" />
+            <line class="cross" x1="21.5" y1="8.5" x2="15.5" y2="15.5" />
+          </svg>
+        </button>
+        <input id="volumeSlider" class="volume-slider" type="range" min="0" max="1" step="0.01" value="0.9" aria-label="Volume" />
+      </div>
+      <button id="undoBtn" class="btn ghost" title="Undo last pick (Z)">&#8630; Undo</button>
+      <button id="restartBtn" class="btn ghost" title="Shuffle a new bracket">Restart</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="game" class="game">
+      <div class="meta">
+        <span id="roundLabel">Round 1</span>
+        <span class="dot">&middot;</span>
+        <span id="matchLabel" aria-live="polite">Match 1 of 93</span>
+        <span class="spacer"></span>
+        <span id="leftLabel">187 songs left</span>
+      </div>
+      <div class="progress"><div id="progressFill" class="progress-fill"></div></div>
+
+      <div class="arena">
+        <div class="song" id="songA" role="button" tabindex="0" aria-label="Pick song A">
+          <div class="artwrap">
+            <img class="art" id="artA" alt="" />
+            <button class="play" id="playA" type="button" title="Play preview (Q)" aria-label="Play 30 second preview"><span class="ico">&#9654;</span></button>
+            <span class="keyhint">1</span>
+          </div>
+          <div class="info">
+            <div class="stitle" id="titleA"></div>
+            <div class="salbum" id="albumA"></div>
+            <div class="sdur" id="durA"></div>
+          </div>
+        </div>
+
+        <div class="vs"><span>VS</span></div>
+
+        <div class="song" id="songB" role="button" tabindex="0" aria-label="Pick song B">
+          <div class="artwrap">
+            <img class="art" id="artB" alt="" />
+            <button class="play" id="playB" type="button" title="Play preview (W)" aria-label="Play 30 second preview"><span class="ico">&#9654;</span></button>
+            <span class="keyhint">2</span>
+          </div>
+          <div class="info">
+            <div class="stitle" id="titleB"></div>
+            <div class="salbum" id="albumB"></div>
+            <div class="sdur" id="durB"></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint">Click a song to pick the better one &mdash; the winner advances, the loser is out. Press <kbd>&larr;</kbd> / <kbd>&rarr;</kbd> or <kbd>1</kbd> / <kbd>2</kbd> to vote, <kbd>Q</kbd> / <kbd>W</kbd> to preview, <kbd>M</kbd> to mute, <kbd>Z</kbd> to undo.</p>
+    </section>
+
+    <section id="champion" class="champion" hidden>
+      <div class="champ-kicker">CHAMPION</div>
+      <div class="champ-artwrap"><img id="champArt" alt="" /></div>
+      <h2 id="champTitle"></h2>
+      <p id="champAlbum" class="muted"></p>
+      <p id="champStats" class="muted"></p>
+      <div class="champ-actions">
+        <button id="againBtn" class="btn primary">Run it back</button>
+        <button id="newBtn" class="btn ghost">New bracket</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="footerCount"></span> &middot; 30s previews via Deezer
+  </footer>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="songs.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
