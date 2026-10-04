@@ -33,10 +33,33 @@
     toast: $("toast"),
     volumeSlider: $("volumeSlider"),
     muteBtn: $("muteBtn"),
+    globalBtn: $("globalBtn"),
+    backBtn: $("backBtn"),
+    leaderboard: $("leaderboard"),
+    lbRows: $("lbRows"),
+    lbSummary: $("lbSummary"),
+    lbStatus: $("lbStatus"),
   };
+
+  const Stats = window.PeepOffStats || {
+    recordPick() {},
+    recordChampion() {},
+    load() {},
+    flush() {},
+    standings: () => ({ tournaments: 0, picks: 0, rows: [] }),
+    onUpdate() {},
+    status: {},
+  };
+
+  const byTrackId = new Map(CATALOG.map((s) => [String(s.id), s]));
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   let state = null;
   let undoStack = [];
+  let pickLog = [];
+  let uiView = "game";
+  let lbTimer = null;
   let locked = false;
   let playingIdx = null;
   let playToken = 0;
@@ -105,7 +128,10 @@
 
   function save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ state, undo: undoStack.slice(-MAX_UNDO) }));
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({ state, undo: undoStack.slice(-MAX_UNDO), pickLog: pickLog.slice(-MAX_UNDO) })
+      );
     } catch {}
   }
 
@@ -116,6 +142,9 @@
       const data = JSON.parse(raw);
       if (!validSnapshot(data.state)) return null;
       undoStack = Array.isArray(data.undo) ? data.undo.filter(validSnapshot) : [];
+      pickLog = Array.isArray(data.pickLog)
+        ? data.pickLog.filter((p) => p && Number.isInteger(p.winner) && Number.isInteger(p.loser))
+        : [];
       return data.state;
     } catch {
       return null;
@@ -137,14 +166,17 @@
     stopPreview();
 
     const winner = which === 0 ? a : b;
+    const loser = which === 0 ? b : a;
     els.song[which].classList.add("winner");
     els.song[1 - which].classList.add("loser");
     pushUndo();
+    Stats.recordPick(CATALOG[winner].id, CATALOG[loser].id);
 
     window.setTimeout(() => {
       state.winners.push(winner);
       state.matchIdx++;
       state.played++;
+      let crowned = null;
 
       if (state.matchIdx * 2 >= state.playable.length) {
         const next = state.winners.slice();
@@ -152,11 +184,16 @@
         if (next.length === 1) {
           state.current = next;
           state.champion = next[0];
+          crowned = next[0];
         } else {
           state.current = next;
           beginRound();
         }
       }
+
+      pickLog.push({ winner, loser, crowned });
+      if (pickLog.length > MAX_UNDO) pickLog.shift();
+      if (crowned !== null) Stats.recordChampion(CATALOG[crowned].id);
 
       for (const el of els.song) el.classList.remove("winner", "loser");
       save();
@@ -167,6 +204,13 @@
 
   function undo() {
     if (locked || !undoStack.length) return;
+    const rec = pickLog.pop();
+    if (rec) {
+      Stats.recordPick(CATALOG[rec.winner].id, CATALOG[rec.loser].id, -1);
+      if (rec.crowned !== null && rec.crowned !== undefined) {
+        Stats.recordChampion(CATALOG[rec.crowned].id, -1);
+      }
+    }
     state = undoStack.pop();
     stopPreview();
     save();
@@ -178,6 +222,7 @@
     state = freshState(seed);
     beginRound();
     undoStack = [];
+    pickLog = [];
     stopPreview();
     save();
     render();
@@ -186,12 +231,93 @@
   /* ---------- rendering ---------- */
 
   function render() {
+    els.undoBtn.disabled = undoStack.length === 0;
+    if (uiView === "global") {
+      els.game.hidden = true;
+      els.champion.hidden = true;
+      els.leaderboard.hidden = false;
+      renderLeaderboard();
+      return;
+    }
+    els.leaderboard.hidden = true;
     const hasChampion = state.champion !== null;
     els.game.hidden = hasChampion;
     els.champion.hidden = !hasChampion;
-    els.undoBtn.disabled = undoStack.length === 0;
     if (hasChampion) renderChampion(state.champion);
     else renderMatch();
+  }
+
+  function timeAgo(ts) {
+    const s = Math.round((Date.now() - ts) / 1000);
+    if (s < 10) return "just now";
+    if (s < 60) return `${s}s ago`;
+    return `${Math.round(s / 60)}m ago`;
+  }
+
+  function updateLbStatus() {
+    const st = Stats.status || {};
+    let text = "Connecting…";
+    if (st.flushing) text = "Syncing…";
+    else if (st.offline) text = "Offline — showing last synced data";
+    else if (st.pending) text = "Votes queued to sync";
+    else if (st.lastSync) text = `Live · updated ${timeAgo(st.lastSync)}`;
+    els.lbStatus.textContent = text;
+    els.lbStatus.classList.toggle("offline", Boolean(st.offline));
+  }
+
+  function renderLeaderboard() {
+    const { tournaments, picks, rows } = Stats.standings();
+    const played = rows.filter((r) => r.matches > 0).length;
+    els.lbSummary.textContent =
+      `${tournaments} ${tournaments === 1 ? "tournament" : "tournaments"} · ` +
+      `${picks} ${picks === 1 ? "pick" : "picks"} · ${played} of ${TOTAL} songs played`;
+
+    els.lbRows.innerHTML = rows
+      .map((r, i) => {
+        const s = byTrackId.get(r.id);
+        const title = s ? s.title : `Unknown (${esc(r.id)})`;
+        const album = s ? s.album : "";
+        const cover = s ? s.cover : "";
+        const pct = Math.round(r.winRate * 100);
+        const sub = [`${pct}% win rate`, `${r.w}\u2013${r.l}`, r.titles ? `${r.titles} ${r.titles === 1 ? "title" : "titles"}` : ""]
+          .filter(Boolean)
+          .join(" \u00b7 ");
+        return (
+          `<div class="lb-row${i < 3 ? " top" : ""}">` +
+          `<span class="lb-rank">${i + 1}</span>` +
+          `<span class="lb-song">` +
+          `<img class="lb-art" src="${esc(cover)}" alt="" loading="lazy" />` +
+          `<span class="lb-names">` +
+          `<span class="lb-title">${esc(title)}</span>` +
+          `<span class="lb-album">${esc(album)}</span>` +
+          `<span class="lb-sub">${esc(sub)}</span>` +
+          `</span></span>` +
+          `<span class="lb-rating">${r.rating}</span>` +
+          `<span class="lb-win"><span class="lb-bar"><i style="width:${pct}%"></i></span><span class="lb-pct">${pct}%</span></span>` +
+          `<span class="lb-record">${r.w}\u2013${r.l}</span>` +
+          `<span class="lb-titles">${r.titles || ""}</span>` +
+          `</div>`
+        );
+      })
+      .join("");
+
+    updateLbStatus();
+  }
+
+  function openGlobal() {
+    uiView = "global";
+    render();
+    Stats.load();
+    Stats.flush();
+    window.clearInterval(lbTimer);
+    lbTimer = window.setInterval(() => Stats.load(), 20000);
+  }
+
+  function closeGlobal() {
+    uiView = "game";
+    window.clearInterval(lbTimer);
+    lbTimer = null;
+    render();
   }
 
   function renderMatch() {
@@ -411,6 +537,15 @@
       applyVolume();
       saveAudioPrefs();
     } else if (e.key === "z" || e.key === "Z") undo();
+  });
+
+  els.globalBtn.addEventListener("click", () => {
+    if (uiView === "global") closeGlobal();
+    else openGlobal();
+  });
+  els.backBtn.addEventListener("click", closeGlobal);
+  Stats.onUpdate(() => {
+    if (uiView === "global") renderLeaderboard();
   });
 
   els.undoBtn.addEventListener("click", undo);

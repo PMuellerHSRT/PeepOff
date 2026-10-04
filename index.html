@@ -11,6 +11,7 @@
   <header class="topbar">
     <h1 class="logo">PEEP<span>OFF</span></h1>
     <div class="actions">
+      <button id="globalBtn" class="btn ghost" title="Global leaderboard">Global</button>
       <div class="volume">
         <button id="muteBtn" class="btn ghost icon" type="button" title="Mute (M)" aria-label="Mute" aria-pressed="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -83,6 +84,30 @@
         <button id="newBtn" class="btn ghost">New bracket</button>
       </div>
     </section>
+
+    <section id="leaderboard" class="leaderboard" hidden>
+      <div class="lb-head">
+        <button id="backBtn" class="btn ghost lb-back" title="Back to the bracket">&#8592; Back</button>
+        <div class="lb-heading">
+          <div class="lb-kicker">GLOBAL ARENA</div>
+          <h2>Most-picked Lil Peep songs</h2>
+          <p id="lbSummary" class="muted"></p>
+        </div>
+        <div id="lbStatus" class="lb-status" aria-live="polite"></div>
+      </div>
+      <div class="lb-table">
+        <div class="lb-row lb-header-row">
+          <span class="lb-rank">#</span>
+          <span class="lb-song">Song</span>
+          <span class="lb-rating">Rating</span>
+          <span class="lb-win">Win rate</span>
+          <span class="lb-record">W&ndash;L</span>
+          <span class="lb-titles">Titles</span>
+        </div>
+        <div id="lbRows"></div>
+      </div>
+      <p class="lb-note">Every pick from every player feeds this board &mdash; ratings are Elo-style, where 1500 is the average song.</p>
+    </section>
   </main>
 
   <footer class="footer">
@@ -92,6 +117,7 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="songs.js"></script>
+  <script src="stats.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
