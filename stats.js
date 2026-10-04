@@ -2,11 +2,10 @@
   "use strict";
 
   const API = "https://api.telegra.ph";
-  const PATH = window.PEEPOFF_TELEGRAPH_PATH || "PeepOff-Global-Stats-10-04";
-  const TOKEN =
-    window.PEEPOFF_TELEGRAPH_TOKEN ||
-    "f3767ecddde706d6b7bab2840ff4c16585b7409e8d3e2e5924f61008f853";
-  const TITLE = "PeepOff Global Stats";
+  const PATH = window.PEEPOFF_TELEGRAPH_PATH || "PeepOff-Arena-Stats-10-04";
+  const TOKEN = window.PEEPOFF_TELEGRAPH_TOKEN || "";
+  const configured = Boolean(TOKEN);
+  const TITLE = "PeepOff Arena Stats";
   const PENDING_KEY = "peepoff-stats-pending";
   const CACHE_KEY = "peepoff-stats-cache";
   const FLUSH_DELAY = 4000;
@@ -116,7 +115,7 @@
   }
 
   async function load() {
-    if (typeof fetch !== "function") return null;
+    if (!configured || typeof fetch !== "function") return null;
     try {
       const res = await fetch(`${API}/getPage/${PATH}?return_content=true&ts=${Date.now()}`);
       if (!res.ok) throw new Error(String(res.status));
@@ -142,7 +141,7 @@
   }
 
   async function flush() {
-    if (flushing || typeof fetch !== "function") return;
+    if (flushing || !configured || typeof fetch !== "function") return;
     if (!pendingCount()) return;
     flushing = true;
     notify();
@@ -233,7 +232,7 @@
       };
     },
     get status() {
-      return { flushing, offline, lastSync, pending: pendingCount() };
+      return { configured, flushing, offline, lastSync, pending: pendingCount() };
     },
   };
 

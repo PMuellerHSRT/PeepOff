@@ -257,7 +257,8 @@
   function updateLbStatus() {
     const st = Stats.status || {};
     let text = "Connecting…";
-    if (st.flushing) text = "Syncing…";
+    if (st.configured === false) text = "Stats sync not configured in this build";
+    else if (st.flushing) text = "Syncing…";
     else if (st.offline) text = "Offline — showing last synced data";
     else if (st.pending) text = "Votes queued to sync";
     else if (st.lastSync) text = `Live · updated ${timeAgo(st.lastSync)}`;
