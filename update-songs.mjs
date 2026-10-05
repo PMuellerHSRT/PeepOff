@@ -69,6 +69,22 @@ async function main() {
   }
   console.log(`raw tracks: ${raw.length}`);
 
+  // verified features on other artists' releases
+  const EXTRA_TRACK_IDS = [
+    1494409192, 600314212, 118761662, 4203098342, 4203031522, 2281013757, 451082452,
+    1143684982, 546890472, 1821665327, 2474244831, 1123691612, 124337534, 3229540321,
+    403284132, 3263494271, 416904852, 920167652, 2240888237, 1458995672, 1845182007,
+    1686044037, 1222562562, 377239171, 920878762, 2985396791, 716159692, 1303372852,
+    528837031, 528837041, 528837051, 528837061, 528837071, 528837081,
+  ];
+  for (const id of EXTRA_TRACK_IDS) {
+    const t = await api(`/track/${id}`);
+    const album = await api(`/album/${t.album.id}`);
+    raw.push({ ...t, _album: { ...album, title: clean(album.title) } });
+    await sleep(150);
+  }
+  console.log(`raw tracks with features: ${raw.length}`);
+
   // Every release fetched here is credited to Lil Peep, so collabs where the
   // track artist is the other act (e.g. Marshmello on "Spotlight") stay in.
   const filtered = raw.filter((t) => {

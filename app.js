@@ -24,7 +24,6 @@
     undoBtn: $("undoBtn"),
     restartBtn: $("restartBtn"),
     againBtn: $("againBtn"),
-    newBtn: $("newBtn"),
     champArt: $("champArt"),
     champTitle: $("champTitle"),
     champAlbum: $("champAlbum"),
@@ -87,11 +86,9 @@
 
   /* ---------- tournament state ---------- */
 
-  function freshState(seed) {
-    const order = seed ? seed.slice() : shuffle([...CATALOG.keys()]);
+  function freshState() {
     return {
-      seed: order,
-      current: order.slice(),
+      current: shuffle([...CATALOG.keys()]),
       playable: [],
       bye: null,
       matchIdx: 0,
@@ -104,7 +101,7 @@
 
   function beginRound() {
     state.round++;
-    state.playable = state.current.slice();
+    state.playable = shuffle(state.current.slice());
     state.bye = null;
     if (state.playable.length > 1 && state.playable.length % 2 === 1) {
       state.bye = state.playable.pop();
@@ -218,8 +215,8 @@
     toast("Undid last pick");
   }
 
-  function restart(seed) {
-    state = freshState(seed);
+  function restart() {
+    state = freshState();
     beginRound();
     undoStack = [];
     pickLog = [];
@@ -551,10 +548,9 @@
 
   els.undoBtn.addEventListener("click", undo);
   els.restartBtn.addEventListener("click", () => {
-    if (window.confirm("Start a fresh bracket? Current progress will be lost.")) restart(null);
+    if (window.confirm("Start a fresh bracket? Current progress will be lost.")) restart();
   });
-  els.againBtn.addEventListener("click", () => restart(state.seed));
-  els.newBtn.addEventListener("click", () => restart(null));
+  els.againBtn.addEventListener("click", () => restart());
 
   /* ---------- boot ---------- */
 
